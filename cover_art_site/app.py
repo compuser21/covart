@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, url_for, jsonify, send_file, after_this_request
+import io
+from flask import Flask, render_template, request, url_for, jsonify, send_file
 import eyed3
 from eyed3.id3.frames import ImageFrame
 
@@ -44,16 +45,14 @@ def overlay():
     mp3_file.tag.images.set(ImageFrame.FRONT_COVER, open(image_filename, 'rb').read(), 'image/jpeg')
     mp3_file.tag.save()
     
-    # @after_this_request
-    # def remove_file(response):
-    #     try:
-    #         os.remove(mp3_filename)
-    #         mp3_file.close()
-    #     except Exception as error:
-    #         app.logger.error('Error removing or closing downloaded file handle', error)
-    #     return response
+    with open(mp3_filename, 'rb') as file:
+        contents = file.read()
+    os.remove(mp3_filename)
+    os.remove(image_filename)
     
-    return send_file(mp3_filename, as_attachment=True)
+    return send_file(io.BytesIO(contents), as_attachment=True,
+                     download_name=mp3_filename.split('\\')[1],
+                     mimetype='mpeg/mp3')
     
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
